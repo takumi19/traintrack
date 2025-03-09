@@ -3,11 +3,12 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"traintrack/internal/database"
 )
 
 type Api struct {
-	s Storage
-	l       Logger
+	s *database.DB
+	l Logger
 }
 
 type ApiError struct {
@@ -66,7 +67,7 @@ func setUpRoutes(api *Api) {
 
 	http.HandleFunc("GET /v1/programs", api.handleListPrograms)
 	// http.HandleFunc("POST /v1/programs", handleCreateProgram)
-	http.HandleFunc("/v1/programs/{program_id}", api.handleEditProgram)
+	http.HandleFunc("/v1/programs/{program_id}/edit", api.handleEditProgram)
 	// http.HandleFunc("PATCH /v1/programs/{program_id}", handleUpdateProgram)
 	// http.HandleFunc("DELETE /v1/programs/{program_id}", handleDeleteProgram)
 

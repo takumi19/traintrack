@@ -1,32 +1,12 @@
-package main
+package database
 
-import "time"
+import (
+	"context"
+	"log"
+	"time"
 
-type User struct {
-	Id           int     `json:"id" db:"id"`
-	FullName     *string `json:"full_name" db:"full_name"`
-	Login        *string `json:"login" db:"login"`
-	Email        *string `json:"email" db:"email"`
-	PasswordHash *string `json:"password_hash" db:"password_hash"`
-}
-
-type ExerciseInfo struct {
-	Id           int       `json:"id" db:"id"`
-	Name         int       `json:"name" db:"name"`
-	Notes        int       `json:"notes" db:"notes"`
-	IsRepBased   bool      `json:"is_rep_based" db:"is_rep_based"`
-	IsBodyweight bool      `json:"is_bodyweight" db:"is_bodyweight"`
-	MuscleGroups []*string `json:"muscle_groups" db:"-"`
-}
-
-type Log struct {
-	Id          int        `json:"id" db:"id"`
-	UserId      int        `json:"user_id" db:"user_id"`
-	WorkoutDate *string    `json:"workout_date" db:"workout_date"`
-	Notes       *string    `json:"notes" db:"notes"`
-	CreatedAt   *time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt   *time.Time `json:"updated_at" db:"updated_at"`
-}
+	"github.com/jackc/pgx/v5"
+)
 
 type Program struct {
 	Id        int64      `json:"id" db:"id"`
@@ -65,7 +45,7 @@ type ProgramWorkout struct {
 type WorkoutExercise struct {
 	Id               int64      `json:"id" db:"id"`
 	ProgramWorkoutId int64      `json:"program_workout_id" db:"program_workout_id"`
-	ExerciseId       int64     `json:"exercise_id" db:"exercise_id"`
+	ExerciseId       int64      `json:"exercise_id" db:"exercise_id"`
 	OrderIndex       int32      `json:"order_index" db:"order_index"`
 	Notes            *string    `json:"notes" db:"notes"`
 	CreatedAt        *time.Time `json:"created_at" db:"created_at"`
@@ -95,4 +75,118 @@ type WorkoutSet struct {
 	Notes     *string    `json:"notes" db:"notes"`
 	CreatedAt *time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt *time.Time `json:"updated_at" db:"updated_at"`
+}
+
+func (s *DB) ListPrograms() ([]Program, error) {
+	rows, err := s.db.Query(context.Background(), "SELECT * FROM program_templates")
+	if err != nil {
+		return nil, err
+	}
+
+	programs, err := pgx.CollectRows(rows, pgx.RowToStructByName[Program])
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range programs {
+		weeks, err := s.ListProgramWeeks(int64(programs[i].Id))
+		if weeks == nil {
+			log.Default().Println("ListPrograms:", err)
+			continue
+		}
+		programs[i].Weeks = weeks
+	}
+
+	return programs, nil
+}
+
+func (s *DB) ListProgramWeeks(programId int64) ([]ProgramWeek, error) {
+	rows, err := s.db.Query(context.Background(), "SELECT * FROM program_weeks WHERE program_template_id=$1", programId)
+	if err != nil {
+		return nil, err
+	}
+
+	weeks, err := pgx.CollectRows(rows, pgx.RowToStructByName[ProgramWeek])
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range weeks {
+		workouts, err := s.ListProgramWeekWorkouts(int64(weeks[i].Id))
+		if workouts == nil {
+			log.Default().Println("getProgramWeeks:", err)
+			continue
+		}
+		weeks[i].Workouts = workouts
+	}
+
+	return weeks, nil
+}
+
+func (s *DB) ListProgramWeekWorkouts(weekId int64) ([]ProgramWorkout, error) {
+	rows, err := s.db.Query(context.Background(), `
+SELECT * FROM program_workouts
+WHERE program_week_id=$1
+ORDER BY workout_index`, weekId)
+	if err != nil {
+		return nil, err
+	}
+
+	workouts, err := pgx.CollectRows(rows, pgx.RowToStructByName[ProgramWorkout])
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range workouts {
+		exercises, err := s.ListWorkoutExercises(int64(workouts[i].Id))
+		if exercises == nil {
+			log.Default().Println("getProgramWeekWorkouts:", err)
+			continue
+		}
+		workouts[i].Exercises = exercises
+	}
+
+	return workouts, nil
+}
+
+func (s *DB) ListWorkoutExercises(workoutId int64) ([]WorkoutExercise, error) {
+	rows, err := s.db.Query(context.Background(), `
+SELECT * FROM program_workout_exercises
+WHERE program_workout_id=$1
+ORDER BY order_index`, workoutId)
+	if err != nil {
+		return nil, err
+	}
+
+	exercises, err := pgx.CollectRows(rows, pgx.RowToStructByName[WorkoutExercise])
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range exercises {
+		sets, err := s.ListExerciseSets(int64(exercises[i].Id))
+		if sets == nil {
+			log.Default().Println("getWorkoutExercises:", err)
+			continue
+		}
+		exercises[i].Sets = sets
+	}
+
+	return exercises, nil
+}
+
+func (s *DB) ListExerciseSets(exerciseId int64) ([]WorkoutSet, error) {
+	rows, err := s.db.Query(context.Background(), `
+SELECT * FROM program_workout_sets
+WHERE program_workout_exercise_id=$1
+ORDER BY set_number`, exerciseId)
+	if err != nil {
+		return nil, err
+	}
+
+	sets, err := pgx.CollectRows(rows, pgx.RowToStructByName[WorkoutSet])
+	if err != nil {
+		return nil, err
+	}
+	return sets, nil
 }

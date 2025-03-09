@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"traintrack/internal/database"
 )
 
 func main() {
@@ -17,7 +18,7 @@ func main() {
 
 	slog := NewSlogger()
 
-	storage, err := MakePostgres(*dbUrl)
+	storage, err := database.New(*dbUrl)
 	if err != nil {
 		slog.Level(FATAL).Fatal(err)
 	}
@@ -32,6 +33,7 @@ func main() {
 	server := &http.Server{
 		Addr:         *addr,
 		Handler:      nil,
+		ErrorLog:     slog.Level(ERROR),
 		ReadTimeout:  3 * time.Second,
 		WriteTimeout: 5 * time.Second,
 		IdleTimeout:  5 * time.Second,
