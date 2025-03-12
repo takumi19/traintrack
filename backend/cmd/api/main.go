@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 	"traintrack/internal/database"
+	"traintrack/internal/editor"
 )
 
 func main() {
@@ -24,10 +25,15 @@ func main() {
 	}
 
 	a := &Api{
-		s: storage,
-		l: slog,
+		db:   storage,
+		l:    slog,
+		eHub: editor.NewHub(),
 	}
 
+	go a.eHub.Run()
+
+	// TODO: Migrate from the default servemux. Since it's a global variable
+	// any package can register a handler in it, which is a security risk
 	setUpRoutes(a)
 
 	server := &http.Server{
@@ -50,7 +56,7 @@ func main() {
 			slog.Level(FATAL).Fatal("Server shutdown failed")
 		}
 
-		a.s.Close()
+		a.db.Close()
 		close(waitForShutdown)
 	}()
 

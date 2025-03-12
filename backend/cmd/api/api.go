@@ -4,11 +4,14 @@ import (
 	"encoding/json"
 	"net/http"
 	"traintrack/internal/database"
+	"traintrack/internal/editor"
 )
 
 type Api struct {
-	s *database.DB
-	l Logger
+	db *database.DB
+	l  Logger
+	// ehub map[int64]*editor.Hub
+	eHub *editor.Hub
 }
 
 type ApiError struct {

@@ -9,7 +9,7 @@ import (
 )
 
 func (a *Api) handleListUsers(w http.ResponseWriter, r *http.Request) {
-	users, err := a.s.ListUsers()
+	users, err := a.db.ListUsers()
 	if err != nil {
 		a.l.Level(ERROR).Print("Failed to list all users:", err)
 		WriteJSON(w, http.StatusInternalServerError, &ApiError{Error: "Database issues"})
@@ -40,7 +40,7 @@ func (a *Api) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := a.s.CreateUser(&user)
+	id, err := a.db.CreateUser(&user)
 	if err != nil {
 		errMsg := "Failed to create new user"
 		a.l.Level(ERROR).Print(errMsg, err)
@@ -61,7 +61,7 @@ func (a *Api) handleReadUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := a.s.ReadUser(int64(id))
+	user, err := a.db.ReadUser(int64(id))
 	if err != nil {
 		a.l.Level(ERROR).Println("Failed to read user data:", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -83,7 +83,7 @@ func (a *Api) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = a.s.DeleteUser(int64(id)); err != nil {
+	if err = a.db.DeleteUser(int64(id)); err != nil {
 		a.l.Level(ERROR).Println("Failed to delete user with id", id)
 		WriteJSON(w, http.StatusInternalServerError, &ApiError{Error: "db fault"})
 	}
@@ -119,7 +119,7 @@ func (a *Api) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	// TODO: Put this here bc the decoder may overwrite the id.
 	// But i need to double check that.
 	user.Id = id
-	if err = a.s.UpdateUser(&user); err != nil {
+	if err = a.db.UpdateUser(&user); err != nil {
 		a.l.Level(ERROR).Println(err)
 		WriteJSON(w, http.StatusInternalServerError, &ApiError{Error: "db fault"})
 		return
