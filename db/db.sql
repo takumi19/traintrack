@@ -62,7 +62,7 @@ CREATE TABLE logged_workouts (
     id           BIGSERIAL PRIMARY KEY,
     user_id      BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     workout_date TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
-    notes        TEXT,   -- optional comments about the workout session
+    notes        TEXT,
     created_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at   TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -70,10 +70,9 @@ CREATE TABLE logged_workouts (
 CREATE TABLE logged_workout_exercises (
     id            BIGSERIAL PRIMARY KEY,
     workout_id    BIGINT NOT NULL REFERENCES logged_workouts(id) ON DELETE CASCADE,
-    exercise_id   BIGINT REFERENCES exercises(id),  -- optional if you maintain a central exercises table
-    -- exercise_name VARCHAR(255),                     -- for flexible naming or custom exercises
+    exercise_id   BIGINT REFERENCES exercises(id),
     order_index   INTEGER NOT NULL DEFAULT 1,       -- the order in which exercises are performed
-    notes         TEXT,                             -- exercise-specific notes
+    notes         TEXT,
     created_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at    TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -81,12 +80,12 @@ CREATE TABLE logged_workout_exercises (
 CREATE TABLE workout_sets (
     id                   BIGSERIAL PRIMARY KEY,
     workout_exercise_id  BIGINT NOT NULL REFERENCES logged_workout_exercises(id) ON DELETE CASCADE,
-    set_number           INTEGER NOT NULL,          -- 1, 2, 3, etc.
+    set_number           INTEGER NOT NULL,          -- order
     reps                 INTEGER,                   -- null if isometric
     weight               NUMERIC(6,2),              -- null if bodyweight
     duration_sec         INTEGER,                   -- null if rep-based
     rpe                  INT,
-    notes                TEXT,                      -- e.g., "Felt easy" or "RPE 8"
+    notes                TEXT,
     created_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at           TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -102,7 +101,7 @@ CREATE TABLE workout_sets (
 CREATE TABLE program_templates (
     id              BIGSERIAL PRIMARY KEY,
     author_id       BIGINT NOT NULL REFERENCES users(id), -- ON DELETE CASCADE?
-    name            VARCHAR(255) NOT NULL,
+    name            TEXT NOT NULL,
     notes           TEXT,
     created_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
@@ -112,7 +111,7 @@ CREATE TABLE program_weeks (
     id                 BIGSERIAL PRIMARY KEY,
     program_template_id BIGINT NOT NULL REFERENCES program_templates(id) ON DELETE CASCADE,
     week_number        INTEGER NOT NULL,    -- Week number in its program
-    notes              TEXT,                -- Optional notes abt the week
+    notes              TEXT,
     created_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at         TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -120,8 +119,8 @@ CREATE TABLE program_weeks (
 CREATE TABLE program_workouts (
     id             BIGSERIAL PRIMARY KEY,
     program_week_id BIGINT NOT NULL REFERENCES program_weeks(id) ON DELETE CASCADE,
-    workout_index  INTEGER NOT NULL,   -- e.g., 1 to 7 (representing Mon=1, Tue=2, etc.) or just an order
-    title          VARCHAR(255),       -- e.g., "Upper Body", "Legs", etc.
+    workout_index  INTEGER NOT NULL,
+    title          VARCHAR(255),
     notes          TEXT,
     created_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at     TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
@@ -130,10 +129,9 @@ CREATE TABLE program_workouts (
 CREATE TABLE program_workout_exercises (
     id                BIGSERIAL PRIMARY KEY,
     program_workout_id BIGINT NOT NULL REFERENCES program_workouts(id) ON DELETE CASCADE,
-    exercise_id       BIGINT NOT NULL REFERENCES exercises(id),  -- optional reference if you maintain a master list of exercises
-    -- exercise_name     VARCHAR(255),     -- free text, if not using exercise_id
+    exercise_id       BIGINT NOT NULL REFERENCES exercises(id),
     order_index       INTEGER NOT NULL DEFAULT 1,  -- the order in which exercises appear
-    notes             TEXT,             -- e.g., “Focus on form”
+    notes             TEXT,
     created_at        TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at        TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -144,22 +142,22 @@ CREATE TABLE program_workout_sets (
     -- instead refers to its PK id. Fix: rename the exercises table and the `exercise_id` field in the program_workout_exercises table.
     program_workout_exercise_id BIGINT NOT NULL REFERENCES program_workout_exercises(id) ON DELETE CASCADE,
     -- TODO: Rename from number to index
-    set_number                 INTEGER NOT NULL DEFAULT 1,      -- 1, 2, 3...
+    set_number                 INTEGER NOT NULL DEFAULT 1,
     rpe                        INTEGER,
 
-    suggested_reps_min         INTEGER,               -- if you want a range (e.g. 8)
-    suggested_reps_max         INTEGER,               -- (e.g. 10), or null if not using a range
-    suggested_reps             INTEGER,               -- exact reps if no range
+    suggested_reps_min         INTEGER,
+    suggested_reps_max         INTEGER,
+    suggested_reps             INTEGER, -- null if using a range
 
-    suggested_weight_min       NUMERIC(6,2),          -- if there's a weight range
+    suggested_weight_min       NUMERIC(6,2),
     suggested_weight_max       NUMERIC(6,2),
-    suggested_weight           NUMERIC(6,2),          -- exact weight if no range
+    suggested_weight           NUMERIC(6,2), -- exact weight if no range
 
-    suggested_time_min         INTEGER,               -- in seconds
+    suggested_time_min         INTEGER, -- in seconds
     suggested_time_max         INTEGER,
-    suggested_time             INTEGER,               -- in seconds
+    suggested_time             INTEGER,
 
-    notes                      TEXT,                  -- e.g. "RPE 8 target" or “light day”
+    notes                      TEXT,
     created_at                 TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
     updated_at                 TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
 );
@@ -185,8 +183,8 @@ CREATE TABLE programs_permissions (
         REFERENCES users(id) ON DELETE CASCADE,  -- If user is deleted, their permissions are too.
     CONSTRAINT fk_program
         FOREIGN KEY(program_id)
-        REFERENCES program_templates(id) ON DELETE CASCADE, -- If program row is deleted, its permissions are too.
-    UNIQUE (user_id, program_id)  -- A user can only have one permission record for a given program row.
+        REFERENCES program_templates(id) ON DELETE CASCADE,
+    UNIQUE (user_id, program_id)
 );
 
 ------------------------
@@ -216,8 +214,8 @@ CREATE TABLE chat_messages (
     author_id     BIGINT REFERENCES users(id),
     text_content  TEXT,
     img_content   TEXT,
-    sent_at       TIMESTAMP WITH TIME ZONE NOT NULL, --  DEFAULT NOW()
-    edited_at     TIMESTAMP WITH TIME ZONE NOT NULL  --  DEFAULT NOW()
+    sent_at       TIMESTAMP WITH TIME ZONE NOT NULL,
+    edited_at     TIMESTAMP WITH TIME ZONE NOT NULL
 );
 
 ------------------------
