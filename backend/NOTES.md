@@ -1,27 +1,3 @@
-Have several structs for each of the API's - one API per table in the database.
-APIs hold all the necessary information for the handlers.
-They also provide the handlers themselves.
-
-All satisfy the followign interface:
-
-```go
-type Api interface{
-  List() http.HandlerFunc
-  Create() http.HandlerFunc
-  Read() http.HandlerFunc
-  Update() http.HandlerFunc
-  Delete() http.HandlerFunc
-}
-```
-
-Now the struct component is what's gonna distinguish them. Example for the Users table:
-
-```go
-type UserApi struct {
-  db *pgxpool.Pool
-}
-```
-
 ## TODO
 
 `TODO`: Use UUIDs instead of the database ids for uniquely identifying users
@@ -36,6 +12,7 @@ type UserApi struct {
 `TODO:` Move from shitty custom logger to "log/slog"
 
 Pseudocode:
+
 ```go
 type ApiFunc func(http.ResponseWriter, *http.Request) error
 
@@ -57,4 +34,6 @@ Here are the problems i have encountered sos far and the solutions i have chosen
 1. 
 
 ## References
+
 [Go jwt](https://github.com/anthdm/gobank/blob/master/api.go#L162)
+[MDN Websockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers)
