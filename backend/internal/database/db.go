@@ -7,6 +7,7 @@ import (
 )
 
 type DB struct {
+  // NOTE: Might wanna embed the struct
 	db *pgxpool.Pool
 }
 
