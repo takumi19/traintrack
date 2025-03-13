@@ -3,13 +3,13 @@
 `TODO`: Use UUIDs instead of the database ids for uniquely identifying users
 `TODO`: Use idempotency keys to ensure that two identical requests do not conflict
 `TODO`: Make a wrapper for the API functions that would log the requests before calling the handler, and then log the error after the handler returns
-`TODO`: Make a storage.go file and abstract away the database interactions behind it
-`TODO`: Right now it is not 100% clear where each particular error message comes from. `1(prob. preferable)`: can use some lib to log the place in the code where the error comes from; `2`: can wrap errors myself into some kind of informative string.
+`TODO`: Right now it is not 100% clear where each particular error message comes from. Use the `myapp` or web starter as an example of how to set up proper logging
 `TODO:` Look at how the directory is structured by SQLc and get some ideas for project organization from there.
 `TODO:` Use .envrc to set environment variables for the server.
-`TODO:` Use migrations(with `tern` or `smig`) instead of keeping everything in one file.
+`TODO:` Use migrations(with `tern`, `smig` or like in the web starter) instead of keeping everything in one file.
 `TODO:` Add a validator for the request input JSON.
-`TODO:` Move from shitty custom logger to "log/slog"
+`TODO:` Use binary WebSocket message format when possible bc for text it checks if it's valid UTF-8, which is wasted processing power.
+`TODO:` Use Idempotency-key header for uniquely identifying a request and connecting it to the server logs, might be helpful
 
 Pseudocode:
 
@@ -37,3 +37,7 @@ Here are the problems i have encountered sos far and the solutions i have chosen
 
 [Go jwt](https://github.com/anthdm/gobank/blob/master/api.go#L162)
 [MDN Websockets](https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API/Writing_WebSocket_servers)
+[Some nice blog](https://packagemain.tech)
+[Go middleware with net/http](https://www.alexedwards.net/blog/making-and-using-middleware)
+[Some more on middleware in Go](https://www.alexedwards.net/blog/making-and-using-middleware)
+[Handlers and servemuxes in Go](https://www.alexedwards.net/blog/an-introduction-to-handlers-and-servemuxes-in-go)
