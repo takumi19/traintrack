@@ -23,6 +23,14 @@ const (
 	maxMessageSize = 16384
 )
 
+const (
+	program         = "program_template"
+	programWeek     = "program_week"
+	programWorkout  = "program_workout"
+	workoutExercise = "program_exercise"
+	workoutSet      = "program_set"
+)
+
 var (
 	newline = []byte{'\n'}
 	space   = []byte{' '}
@@ -33,11 +41,16 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-// TODO: Migrate to sending messages from the client in this format
-// The type specifies whether it is a program, a week, etc. The Data
-// field is the actual payload.
+// This is a wrapper type for the messages received from the frontend
+// The type specifies whether it is a program, a week, etc. Must be
+// specifiede by the client before sending.
+// The Data field is the actual payload received.
 type MessageWrapper struct {
-	Type string          `json:"type"`
+	// The Id is the id of the program being edited. Set before being sent to the hub
+	Id int64 `json:"-"`
+	// The type of element edited as set by the frontend
+	Type string `json:"type"`
+	// The actual paylod received from the client
 	Data json.RawMessage `json:"data"`
 }
 
@@ -49,7 +62,10 @@ type Client struct {
 	Conn *websocket.Conn
 
 	// Buffered channel of outbound messages.
-	Send chan []byte
+	Send chan MessageWrapper
+
+	// Program ID
+	ProrgamID int64
 }
 
 func (c *Client) ReadPump(db *database.DB) {
@@ -70,16 +86,24 @@ func (c *Client) ReadPump(db *database.DB) {
 			break
 		}
 
-		// if err := c.processMessage(message, db); err != nil {
-		// 	log.Default().Printf("error: %v\n", err)
-		// 	break
-		// }
+		var convertedMsg MessageWrapper
+		err = json.Unmarshal(message, &convertedMsg)
+		if err != nil {
+			log.Default().Println("Failed to decode the message received through websockets:", err)
+		}
+		// Specify the id of the program being edited
+		convertedMsg.Id = c.ProrgamID
+
+		if err := c.processMessage(&convertedMsg, db); err != nil {
+			log.Default().Printf("error: %v\n", err)
+			break
+		}
 
 		// not sure if i need to do this:
 		// message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
 
 		// Send the program to the hub
-		c.Hub.broadcast <- message
+		c.Hub.broadcast <- convertedMsg
 	}
 }
 
@@ -103,13 +127,13 @@ func (c *Client) WritePump() {
 			if err != nil {
 				return
 			}
-			w.Write(message)
+			w.Write(message.Data)
 
-			// Add queued chat messages to the current websocket message.
 			n := len(c.Send)
 			for i := 0; i < n; i++ {
 				w.Write(newline)
-				w.Write(<-c.Send)
+				msg := <-c.Send
+				w.Write(msg.Data)
 			}
 
 			if err := w.Close(); err != nil {
@@ -124,15 +148,40 @@ func (c *Client) WritePump() {
 	}
 }
 
-func (c *Client) processMessage(msg []byte, db *database.DB) error {
-	var p database.Program
-	if err := json.Unmarshal(msg, &p); err != nil {
-		log.Default().Print("Failed to decode JSON from the websocket message")
-		return err
+// Parses the message from the client and updates the database entry
+func (c *Client) processMessage(msg *MessageWrapper, db *database.DB) error {
+	switch msg.Type {
+	case program:
+		var p *database.Program
+		if err := json.Unmarshal(msg.Data, p); err != nil {
+			return err
+		}
+		db.UpdateProgram(p)
+	case programWeek:
+		var p *database.ProgramWeek
+		if err := json.Unmarshal(msg.Data, p); err != nil {
+			return err
+		}
+		db.UpdateProgramWeek(p)
+	case programWorkout:
+		var p *database.ProgramWorkout
+		if err := json.Unmarshal(msg.Data, p); err != nil {
+			return err
+		}
+		db.UpdateProgramWorkout(p)
+	case workoutExercise:
+		var p *database.WorkoutExercise
+		if err := json.Unmarshal(msg.Data, p); err != nil {
+			return err
+		}
+		db.UpdateWorkoutExercise(p)
+	case workoutSet:
+		var p *database.WorkoutSet
+		if err := json.Unmarshal(msg.Data, p); err != nil {
+			return err
+		}
+		db.UpdateWorkoutSet(p)
 	}
-	if err := db.UpdateProgram(&p); err != nil {
-		log.Default().Println("Failed to update program")
-		return err
-	}
+
 	return nil
 }

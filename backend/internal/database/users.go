@@ -15,9 +15,9 @@ type User struct {
 	PasswordHash *string `json:"password_hash" db:"password_hash"`
 }
 
-func (s *DB) CreateUser(user *User) (int64, error) {
+func (db *DB) CreateUser(user *User) (int64, error) {
 	var id int64
-	err := s.db.QueryRow(context.Background(), `
+	err := db.QueryRow(context.Background(), `
 INSERT INTO users (
   full_name, login, email, password_hash
 )
@@ -28,8 +28,8 @@ RETURNING id`, &user.FullName, &user.Login, &user.Email, &user.PasswordHash).Sca
 }
 
 // TODO: Get the user by login not by the id
-func (s *DB) ReadUser(id int64) (*User, error) {
-	rows, _ := s.db.Query(context.Background(), "SELECT * FROM users WHERE id=$1", id)
+func (db *DB) ReadUser(id int64) (*User, error) {
+	rows, _ := db.Query(context.Background(), "SELECT * FROM users WHERE id=$1", id)
 
 	user, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
 	if err != nil && err == pgx.ErrNoRows {
@@ -39,8 +39,8 @@ func (s *DB) ReadUser(id int64) (*User, error) {
 	return &user, nil
 }
 
-func (s *DB) UpdateUser(user *User) error {
-	tx, err := s.db.Begin(context.Background())
+func (db *DB) UpdateUser(user *User) error {
+	tx, err := db.Begin(context.Background())
 	defer tx.Rollback(context.Background()) // Safe to call even after commit
 	if err != nil {
 		log.Default().Println("Failed to start transaction:", err)
@@ -68,17 +68,17 @@ WHERE
 	return nil
 }
 
-func (s *DB) DeleteUser(id int64) error {
-	if cmd_tag, err := s.db.Exec(context.Background(), "DELETE FROM users WHERE id=$1", id); err != nil {
-		log.Default().Println(cmd_tag, err)
+func (db *DB) DeleteUser(id int64) error {
+	if cmdTag, err := db.Exec(context.Background(), "DELETE FROM users WHERE id=$1", id); err != nil {
+		log.Default().Println(cmdTag, err)
 		return err
 	}
 
 	return nil
 }
 
-func (s *DB) ListUsers() ([]User, error) {
-	rows, err := s.db.Query(context.Background(), "SELECT * FROM users")
+func (db *DB) ListUsers() ([]User, error) {
+	rows, err := db.Query(context.Background(), "SELECT * FROM users")
 	if err != nil {
 		log.Default().Println("Failed to retrieve all users")
 		rows.Close()

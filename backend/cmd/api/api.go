@@ -8,10 +8,10 @@ import (
 )
 
 type Api struct {
-	db *database.DB
-	l  Logger
-	// ehub map[int64]*editor.Hub
+	db   *database.DB
+	l    Logger
 	eHub *editor.Hub
+	// hubs map[int64]*editor.Hub
 }
 
 type ApiError struct {
@@ -56,9 +56,8 @@ func setUpRoutes(api *Api) {
 
 	// http.HandleFunc("/echo", handleWebsocketConnection)
 
-	// http.HandleFunc("GET /param", handleNonParametrized)
-	// http.HandleFunc("GET /param/{id}", handleParametrized)
-	//
+	http.HandleFunc("POST /test", api.testhndlr)
+
 	// http.HandleFunc("GET /login", handleLogin)
 	// http.HandleFunc("GET /signup", handleSignup)
 
@@ -70,7 +69,7 @@ func setUpRoutes(api *Api) {
 
 	http.HandleFunc("GET /v1/programs", api.handleListPrograms)
 	// http.HandleFunc("POST /v1/programs", handleCreateProgram)
-	http.HandleFunc("/v1/programs/{program_id}/edit", api.handleEditProgram)
+	http.HandleFunc("/v1/programs/edit", api.handleEditProgram)
 	// http.HandleFunc("PATCH /v1/programs/{program_id}", handleUpdateProgram)
 	// http.HandleFunc("DELETE /v1/programs/{program_id}", handleDeleteProgram)
 

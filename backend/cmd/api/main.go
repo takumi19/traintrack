@@ -19,13 +19,13 @@ func main() {
 
 	slog := NewSlogger()
 
-	storage, err := database.New(*dbUrl)
+	db, err := database.New(*dbUrl)
 	if err != nil {
 		slog.Level(FATAL).Fatal(err)
 	}
 
 	a := &Api{
-		db:   storage,
+		db:   db,
 		l:    slog,
 		eHub: editor.NewHub(),
 	}

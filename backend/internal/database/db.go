@@ -7,8 +7,7 @@ import (
 )
 
 type DB struct {
-  // NOTE: Might wanna embed the struct
-	db *pgxpool.Pool
+	*pgxpool.Pool
 }
 
 // Returns a DB connected to the provided URL. On failure returns nil and an error.
@@ -23,11 +22,6 @@ func New(dbUrl string) (*DB, error) {
 	}
 
 	return &DB{
-		db: conn,
+		Pool: conn,
 	}, nil
-}
-
-func (s *DB) Close() error {
-	s.db.Close()
-	return nil
 }
