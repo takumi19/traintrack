@@ -2,6 +2,7 @@ package editor
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"time"
 	"traintrack/internal/database"
@@ -35,11 +36,6 @@ var (
 	newline = []byte{'\n'}
 	space   = []byte{' '}
 )
-
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-}
 
 // This is a wrapper type for the messages received from the frontend
 // The type specifies whether it is a program, a week, etc. Must be
@@ -181,6 +177,8 @@ func (c *Client) processMessage(msg *MessageWrapper, db *database.DB) error {
 			return err
 		}
 		db.UpdateWorkoutSet(p)
+	default:
+		return errors.New("malformed JSON")
 	}
 
 	return nil
