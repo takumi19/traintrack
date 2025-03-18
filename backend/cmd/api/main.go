@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"traintrack/internal/chat"
 	"traintrack/internal/database"
 	"traintrack/internal/editor"
 )
@@ -35,13 +36,11 @@ func main() {
 		db:   db,
 		l:    slog,
 		eHub: editor.NewHub(),
+    cHub: chat.NewHub(),
 	}
 
 	go a.eHub.Run()
-
-	// TODO: Migrate from the default servemux. Since it's a global variable
-	// any package can register a handler in it, which is a security risk
-	setUpRoutes(a)
+	go a.cHub.Run()
 
 	server := &http.Server{
 		Addr:         *addr,

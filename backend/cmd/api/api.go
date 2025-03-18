@@ -3,15 +3,18 @@ package main
 import (
 	"encoding/json"
 	"net/http"
+	"traintrack/internal/chat"
 	"traintrack/internal/database"
 	"traintrack/internal/editor"
 )
 
 type Api struct {
-	db   *database.DB
-	l    Logger
+	db *database.DB
+	l  Logger
+	// Editor hub
 	eHub *editor.Hub
-	// hubs map[int64]*editor.Hub
+	// Chat hub
+	cHub *chat.Hub
 }
 
 type ApiError struct {
@@ -82,6 +85,7 @@ func (api *Api) routes() http.Handler {
   // GET chats by user_id
   // DELETE chat by chat_id
   // Websocket connection to concrete chat
+	mux.HandleFunc("/chats/{chat_id}", api.handleChatWs)
 	// mux.HandleFunc("DELETE /chats/{chat_id}", api.handleDeleteChatMessage)
 
 	v1 := http.NewServeMux()
