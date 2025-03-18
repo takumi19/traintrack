@@ -15,16 +15,17 @@ var upgrader = websocket.Upgrader{
 	// TODO:
 	// WriteBufferPool: ...
 	// Error: ...
+  // CheckOrigin: ...
 }
 
 // Currently expects the whole program JSON
 func (a *Api) handleEditProgram(w http.ResponseWriter, r *http.Request) {
-	if len(r.URL.Query().Get("template_id")) == 0 {
+	if len(r.PathValue("template_id")) == 0 {
 		WriteJSON(w, http.StatusBadRequest, &ApiError{Error: "no template id"})
     return
 	}
 
-	templateID, err := strconv.ParseInt(r.URL.Query().Get("template_id"), 10, 64)
+	templateID, err := strconv.ParseInt(r.PathValue("template_id"), 10, 64)
   if err != nil {
     WriteJSON(w, http.StatusBadRequest, &ApiError{Error: "bad template id"})
     return

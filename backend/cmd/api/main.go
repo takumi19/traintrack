@@ -12,6 +12,13 @@ import (
 	"traintrack/internal/editor"
 )
 
+const (
+	defaultIdleTimeout    = 5 * time.Second
+	defaultReadTimeout    = 3 * time.Second
+	defaultWriteTimeout   = 5 * time.Second
+	defaultShutdownPeriod = 30 * time.Second
+)
+
 func main() {
 	addr := flag.String("addr", ":8090", "HTTP network address")
 	dbUrl := flag.String("dsn", "postgres://takumi@localhost:5432/traintrackdb2", "Data source name")
@@ -38,11 +45,11 @@ func main() {
 
 	server := &http.Server{
 		Addr:         *addr,
-		Handler:      nil,
+		Handler:      a.routes(),
 		ErrorLog:     slog.Level(ERROR),
-		ReadTimeout:  3 * time.Second,
-		WriteTimeout: 5 * time.Second,
-		IdleTimeout:  5 * time.Second,
+		ReadTimeout:  defaultReadTimeout,
+		WriteTimeout: defaultWriteTimeout,
+		IdleTimeout:  defaultIdleTimeout,
 	}
 
 	// Graceful shutdown

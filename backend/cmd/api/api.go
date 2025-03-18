@@ -49,47 +49,43 @@ func (a *Api) ok(w http.ResponseWriter, data interface{}) {
 	w.Write(resp)
 }
 
-func setUpRoutes(api *Api) {
-	// http.HandleFunc("GET /test_websockets", func(w http.ResponseWriter, r *http.Request) {
-	// 	http.ServeFile(w, r, "./websockets.html")
-	// })
+// TODO: Rewrite this mf
+func (api *Api) routes() http.Handler {
+	mux := http.NewServeMux()
 
-	// http.HandleFunc("/echo", handleWebsocketConnection)
+	mux.HandleFunc("POST /test", api.testhndlr)
 
-	http.HandleFunc("POST /test", api.testhndlr)
+	mux.HandleFunc("GET /users", api.handleListUsers)
+	mux.HandleFunc("POST /users", api.handleCreateUser)
+	// NOTE: Request.PathValue matches the {user_id}
+	mux.HandleFunc("GET /users/{user_id}", api.handleReadUser)
+	mux.HandleFunc("DELETE /users/{user_id}", api.handleDeleteUser)
+	mux.HandleFunc("PATCH /users/{user_id}", api.handleUpdateUser)
 
-	// http.HandleFunc("GET /login", handleLogin)
-	// http.HandleFunc("GET /signup", handleSignup)
+	mux.HandleFunc("GET /programs", api.handleListPrograms)
+	mux.HandleFunc("GET /programs/{template_id}/edit", api.handleEditProgram)
+	// mux.HandleFunc("GET /programs/{program_id}/edit", handleEditProgram)
 
-	http.HandleFunc("GET /v1/users", api.handleListUsers)
-	http.HandleFunc("POST /v1/users", api.handleCreateUser)
-	http.HandleFunc("GET /v1/users/{user_id}", api.handleReadUser)
-	http.HandleFunc("DELETE /v1/users/{user_id}", api.handleDeleteUser)
-	http.HandleFunc("PATCH /v1/users/{user_id}", api.handleUpdateUser)
+	// mux.HandleFunc("GET /logs", api.handleListLogs)
+	// mux.HandleFunc("GET /logs/{log_id}", api.handleReadLog)
+	// mux.HandleFunc("PATCH /logs/{log_id}", api.handleUpdateLog)
+	// mux.HandleFunc("DELETE /logs/{log_id}", api.handleDeleteProgram)
+	// mux.HandleFunc("GET /logs/{log_id}/{workout_id}", api.handleReadLoggedWorkout)
+	// mux.HandleFunc("POST /logs/{log_id}/{workout_id}", api.handleCreateLoggedWorkout)
 
-	http.HandleFunc("GET /v1/programs", api.handleListPrograms)
-	// http.HandleFunc("POST /v1/programs", handleCreateProgram)
-	http.HandleFunc("/v1/programs/edit", api.handleEditProgram)
-	// http.HandleFunc("PATCH /v1/programs/{program_id}", handleUpdateProgram)
-	// http.HandleFunc("DELETE /v1/programs/{program_id}", handleDeleteProgram)
+	// mux.HandleFunc("POST /chats", api.handleCreateChat)
+  // mux.HandleFunc("GET /chats", api.handleListChats)
+	// mux.HandleFunc("GET /chats/{chat_id}", api.handleReadChat)
+	// mux.HandleFunc("DELETE /chats/{chat_id}", api.handleDeleteChat)
 
-	// http.HandleFunc("GET /v1/programs/{program_id}/edit", handleEditProgram)
-	//
-	// http.HandleFunc("GET /v1/logs", handleListLogs)
-	// http.HandleFunc("GET /v1/logs/{log_id}", handleReadLog)
-	// http.HandleFunc("PATCH /v1/logs/{log_id}", handleUpdateLog)
-	// http.HandleFunc("DELETE /v1/logs/{log_id}", handleDeleteProgram)
-	// http.HandleFunc("GET /v1/logs/{log_id}/{workout_id}", handleReadLoggedWorkout)
-	// http.HandleFunc("POST /v1/logs/{log_id}/{workout_id}", handleCreateLoggedWorkout)
-	//
-	// http.HandleFunc("GET /v1/chats", handleListChats)
-	// http.HandleFunc("POST /v1/chats", handleCreateChat)
-	// http.HandleFunc("GET /v1/chats/{chat_id}", handleReadChat)
-	// http.HandleFunc("DELETE /v1/chats/{chat_id}", handleDeleteChat)
-	//
-	// http.HandleFunc("GET /v1/chats/{chat_id}/messages", handleListChatMessages)
-	// http.HandleFunc("POST /v1/chats/{chat_id}/messages", handleCreateChatMessage)
-	// http.HandleFunc("GET /v1/chats/{chat_id}/messages/{message_id}", handleReadChatMessage)
-	// http.HandleFunc("PATCH /v1/chats/{chat_id}/messages/{message_id}", handleUpdateChatMessage)
-	// http.HandleFunc("DELETE /v1/chats/{chat_id}/messages/{message_id}", handleDeleteChatMessage)
+  // For the chats we need:
+  // GET chats by user_id
+  // DELETE chat by chat_id
+  // Websocket connection to concrete chat
+	// mux.HandleFunc("DELETE /chats/{chat_id}", api.handleDeleteChatMessage)
+
+	v1 := http.NewServeMux()
+	v1.Handle("/v1/", http.StripPrefix("/v1", mux))
+
+	return v1
 }
