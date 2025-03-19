@@ -11,16 +11,9 @@ import (
 )
 
 const (
-	// Time allowed to write a message to the peer.
 	writeWait = 10 * time.Second
-
-	// Time allowed to read the next pong message from the peer.
 	pongWait = 60 * time.Second
-
-	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
-
-	// Maximum message size allowed from peer.
 	maxMessageSize = 16384
 )
 
@@ -148,35 +141,35 @@ func (c *Client) WritePump() {
 func (c *Client) processMessage(msg *MessageWrapper, db *database.DB) error {
 	switch msg.Type {
 	case program:
-		var p *database.Program
-		if err := json.Unmarshal(msg.Data, p); err != nil {
+		var p database.Program
+		if err := json.Unmarshal(msg.Data, &p); err != nil {
 			return err
 		}
-		db.UpdateProgram(p)
+		db.UpdateProgram(&p)
 	case programWeek:
-		var p *database.ProgramWeek
-		if err := json.Unmarshal(msg.Data, p); err != nil {
+		var p database.ProgramWeek
+		if err := json.Unmarshal(msg.Data, &p); err != nil {
 			return err
 		}
-		db.UpdateProgramWeek(p)
+		db.UpdateProgramWeek(&p)
 	case programWorkout:
-		var p *database.ProgramWorkout
-		if err := json.Unmarshal(msg.Data, p); err != nil {
+		var p database.ProgramWorkout
+		if err := json.Unmarshal(msg.Data, &p); err != nil {
 			return err
 		}
-		db.UpdateProgramWorkout(p)
+		db.UpdateProgramWorkout(&p)
 	case workoutExercise:
-		var p *database.WorkoutExercise
-		if err := json.Unmarshal(msg.Data, p); err != nil {
+		var p database.WorkoutExercise
+		if err := json.Unmarshal(msg.Data, &p); err != nil {
 			return err
 		}
-		db.UpdateWorkoutExercise(p)
+		db.UpdateWorkoutExercise(&p)
 	case workoutSet:
-		var p *database.WorkoutSet
-		if err := json.Unmarshal(msg.Data, p); err != nil {
+		var p database.WorkoutSet
+		if err := json.Unmarshal(msg.Data, &p); err != nil {
 			return err
 		}
-		db.UpdateWorkoutSet(p)
+		db.UpdateWorkoutSet(&p)
 	default:
 		return errors.New("malformed JSON")
 	}
