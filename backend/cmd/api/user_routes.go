@@ -18,7 +18,6 @@ func (a *Api) handleListUsers(w http.ResponseWriter, r *http.Request) {
 	WriteJSON(w, http.StatusOK, users)
 }
 
-// BUG: This and several others are not idempotent, use Idempotency-key header in the request to handle this
 func (a *Api) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	if contentType := r.Header.Get("Content-type"); contentType != "application/json" {
 		a.l.Level(ERROR).Print("Wrong Content-type:", contentType)

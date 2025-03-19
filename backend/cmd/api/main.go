@@ -11,6 +11,7 @@ import (
 	"traintrack/internal/chat"
 	"traintrack/internal/database"
 	"traintrack/internal/editor"
+	"traintrack/internal/middleware"
 )
 
 const (
@@ -25,18 +26,18 @@ func main() {
 	dbUrl := flag.String("dsn", "postgres://takumi@localhost:5432/traintrackdb2", "Data source name")
 	flag.Parse()
 
-	slog := NewSlogger()
+	logger := NewSlogger()
 
-	db, err := database.New(*dbUrl)
+	db, err := database.New(*dbUrl, false)
 	if err != nil {
-		slog.Level(FATAL).Fatal(err)
+		logger.Level(FATAL).Fatal(err)
 	}
 
 	a := &Api{
 		db:   db,
-		l:    slog,
+		l:    logger,
 		eHub: editor.NewHub(),
-    cHub: chat.NewHub(),
+		cHub: chat.NewHub(),
 	}
 
 	go a.eHub.Run()
@@ -44,8 +45,8 @@ func main() {
 
 	server := &http.Server{
 		Addr:         *addr,
-		Handler:      a.routes(),
-		ErrorLog:     slog.Level(ERROR),
+		Handler:      middleware.LogRequests(a.authenticate(a.routes())),
+		ErrorLog:     logger.Level(ERROR),
 		ReadTimeout:  defaultReadTimeout,
 		WriteTimeout: defaultWriteTimeout,
 		IdleTimeout:  defaultIdleTimeout,
@@ -59,19 +60,19 @@ func main() {
 		<-sc
 
 		if err := server.Shutdown(context.Background()); err != nil {
-			slog.Level(FATAL).Fatal("Server shutdown failed")
+			logger.Level(FATAL).Fatal("Server shutdown failed")
 		}
 
 		a.db.Close()
 		close(waitForShutdown)
 	}()
 
-	slog.Level(INFO).Printf("Starting the server on %s", *addr)
+	logger.Level(INFO).Printf("Starting the server on %s", *addr)
 
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		slog.Level(FATAL).Fatalf("Server shutdown failed:%s", err)
+		logger.Level(FATAL).Fatalf("Server shutdown failed:%s", err)
 	}
 
 	<-waitForShutdown
-	slog.Level(INFO).Printf("Server shut down successfully!")
+	logger.Level(INFO).Printf("Server shut down successfully!")
 }

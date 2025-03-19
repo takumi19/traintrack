@@ -52,41 +52,60 @@ func (a *Api) ok(w http.ResponseWriter, data interface{}) {
 	w.Write(resp)
 }
 
-// TODO: Rewrite this mf
-func (api *Api) routes() http.Handler {
-	mux := http.NewServeMux()
+func (a *Api) debugHandle(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("This is a protected handler"))
+}
 
-	mux.HandleFunc("POST /test", api.testhndlr)
-
-	mux.HandleFunc("GET /users", api.handleListUsers)
-	mux.HandleFunc("POST /users", api.handleCreateUser)
-	// NOTE: Request.PathValue matches the {user_id}
-	mux.HandleFunc("GET /users/{user_id}", api.handleReadUser)
-	mux.HandleFunc("DELETE /users/{user_id}", api.handleDeleteUser)
-	mux.HandleFunc("PATCH /users/{user_id}", api.handleUpdateUser)
-
-	mux.HandleFunc("GET /programs", api.handleListPrograms)
-	mux.HandleFunc("GET /programs/{template_id}/edit", api.handleEditProgram)
-	// mux.HandleFunc("GET /programs/{program_id}/edit", handleEditProgram)
-
+func (api *Api) trainingLogRoutes() http.Handler {
+  mux := http.NewServeMux()
 	// mux.HandleFunc("GET /logs", api.handleListLogs)
 	// mux.HandleFunc("GET /logs/{log_id}", api.handleReadLog)
 	// mux.HandleFunc("PATCH /logs/{log_id}", api.handleUpdateLog)
 	// mux.HandleFunc("DELETE /logs/{log_id}", api.handleDeleteProgram)
 	// mux.HandleFunc("GET /logs/{log_id}/{workout_id}", api.handleReadLoggedWorkout)
 	// mux.HandleFunc("POST /logs/{log_id}/{workout_id}", api.handleCreateLoggedWorkout)
+  return mux
+}
 
-	// mux.HandleFunc("POST /chats", api.handleCreateChat)
-  // mux.HandleFunc("GET /chats", api.handleListChats)
-	// mux.HandleFunc("GET /chats/{chat_id}", api.handleReadChat)
-	// mux.HandleFunc("DELETE /chats/{chat_id}", api.handleDeleteChat)
+func (api *Api) userRoutes() http.Handler {
+  mux := http.NewServeMux()
+	mux.HandleFunc("GET /", api.handleListUsers)
+	mux.HandleFunc("POST /", api.handleCreateUser)
+	mux.HandleFunc("GET /{user_id}", api.handleReadUser)
+	mux.HandleFunc("DELETE /{user_id}", api.handleDeleteUser)
+	mux.HandleFunc("PATCH /{user_id}", api.handleUpdateUser)
+  return mux
+}
 
-  // For the chats we need:
-  // GET chats by user_id
-  // DELETE chat by chat_id
-  // Websocket connection to concrete chat
+func (api *Api) chatRoutes() http.Handler {
+  mux := http.NewServeMux()
+	mux.HandleFunc("/", api.handleListUserChats)
+	mux.HandleFunc("/{chat_id}", api.handleChatWs)
+  return mux
+}
+
+func (api *Api) routes() http.Handler {
+	mux := http.NewServeMux()
+
+	mux.Handle("POST /test", api.requireAuthentication(http.HandlerFunc(api.debugHandle)))
+
+	mux.HandleFunc("POST /login", api.handleLogin)
+	mux.HandleFunc("POST /signup", api.handleSignup)
+
+  mux.Handle("/users/", http.StripPrefix("/users", api.userRoutes()))
+
+	mux.HandleFunc("GET /programs", api.handleListPrograms)
+	mux.HandleFunc("GET /programs/{template_id}/edit", api.handleEditProgram)
+	// mux.Handle("GET /programs/{template_id}/edit", api.requireAuthentication(http.HandlerFunc(api.handleEditProgram)))
+
+  mux.Handle("/logs/", http.StripPrefix("/logs", api.trainingLogRoutes()))
+
+  // mux.Handle("/chats/", http.StripPrefix("/chats", api.chatRoutes()))
+	mux.HandleFunc("/chats", api.handleListUserChats)
 	mux.HandleFunc("/chats/{chat_id}", api.handleChatWs)
-	// mux.HandleFunc("DELETE /chats/{chat_id}", api.handleDeleteChatMessage)
+
+	mux.HandleFunc("GET /exercises", api.handleListExercises)
+	mux.HandleFunc("GET /exercises/{exercise_id}", api.handleListExercises)
 
 	v1 := http.NewServeMux()
 	v1.Handle("/v1/", http.StripPrefix("/v1", mux))
