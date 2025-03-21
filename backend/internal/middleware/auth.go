@@ -35,7 +35,7 @@ func AuthMiddleware(deps AuthDeps) func(next http.Handler) http.Handler {
 			if len(headerParts) == 2 && headerParts[0] == "Bearer" {
 				tokenString := headerParts[1]
 
-				token, err := jwt.ValidateJWT(deps.JwtSecret, tokenString)
+				token, err := jwt.GetToken(deps.JwtSecret, tokenString)
 				if err != nil {
 					authFailure(w, "Failed to validate JWT")
 					return
