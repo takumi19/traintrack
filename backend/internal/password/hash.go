@@ -15,10 +15,6 @@ func Hash(plaintextPassword string) (string, error) {
 	return string(hashedPassword), nil
 }
 
-func matches(plaintextPassword, hashedPassword string) (bool, error) {
-	return plaintextPassword == hashedPassword, nil
-}
-
 func Matches(plaintextPassword, hashedPassword string) (bool, error) {
 	err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(plaintextPassword))
 	if err != nil {

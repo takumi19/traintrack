@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"traintrack/internal/database"
 	"traintrack/internal/password"
+	"traintrack/internal/jwt"
 )
 
-type signupRequest struct {
+type userDTO struct {
 	FullName          *string `json:"full_name" db:"full_name"`
 	Login             *string `json:"login" db:"login"`
 	Email             *string `json:"email" db:"email"`
@@ -16,7 +17,7 @@ type signupRequest struct {
 }
 
 func (a *Api) handleSignup(w http.ResponseWriter, r *http.Request) {
-	var data signupRequest
+	var data userDTO
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		a.l.Level(ERROR).Print("Failed to decode JSON from the request:", err)
 		w.WriteHeader(http.StatusBadRequest)
@@ -48,7 +49,7 @@ func (a *Api) handleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := createJWT(user)
+	token, err := jwt.CreateJWT(a.c.jwt.secretKey, user)
 	if err != nil {
 		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to create token"})
 		return
@@ -59,7 +60,7 @@ func (a *Api) handleSignup(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (data *signupRequest) validate() error {
+func (data *userDTO) validate() error {
 	if data.Email == nil {
 		return errors.New("no email")
 	}

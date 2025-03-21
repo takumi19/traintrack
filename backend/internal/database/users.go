@@ -33,7 +33,7 @@ func (db *DB) ReadUser(id int64) (*User, error) {
 
 	user, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
 	if err != nil && err == pgx.ErrNoRows {
-		return nil, err
+		return nil, ErrNotFound
 	}
 
 	return &user, nil
@@ -91,4 +91,15 @@ func (db *DB) ListUsers() ([]User, error) {
 	}
 
 	return users, nil
+}
+
+func (db *DB) GetUserByEmail(email string) (*User, error) {
+	rows, _ := db.Query(context.Background(), "SELECT * FROM users WHERE email=$1", email)
+
+	user, err := pgx.CollectExactlyOneRow(rows, pgx.RowToStructByName[User])
+	if err != nil && err == pgx.ErrNoRows {
+		return nil, ErrNotFound
+	}
+
+	return &user, nil
 }

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"traintrack/internal/database"
 	"traintrack/internal/password"
+	"traintrack/internal/jwt"
 )
 
 func (a *Api) handleLogin(w http.ResponseWriter, r *http.Request) {
@@ -13,14 +14,13 @@ func (a *Api) handleLogin(w http.ResponseWriter, r *http.Request) {
 	// If not valid return unauthorized
 	// If valid, creates a JWT token and sends it back
 
-	var data signupRequest
+	var data userDTO
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		a.l.Level(ERROR).Print("Failed to decode JSON from the request:", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-  ///
   if err := data.validate(); err != nil {
     a.l.Level(ERROR).Println(err)
 		WriteJSON(w, http.StatusBadRequest, ApiError{Error: "missing fields"})
@@ -39,8 +39,6 @@ func (a *Api) handleLogin(w http.ResponseWriter, r *http.Request) {
 		Email:        data.Email,
 		PasswordHash: &encryptedPassword,
 	}
-
-  ///
 
 	existingUser, err := a.db.GetUserByEmail(*data.Email)
 	if err != nil {
@@ -65,7 +63,7 @@ func (a *Api) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Create JWT
-	token, err := createJWT(user)
+	token, err := jwt.CreateJWT(a.c.jwt.secretKey, user)
 	if err != nil {
 		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to create token"})
 		return

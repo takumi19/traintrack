@@ -3,6 +3,8 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,6 +14,8 @@ import (
 	"traintrack/internal/database"
 	"traintrack/internal/editor"
 	"traintrack/internal/middleware"
+
+	"github.com/lmittmann/tint"
 )
 
 const (
@@ -21,14 +25,38 @@ const (
 	defaultShutdownPeriod = 30 * time.Second
 )
 
+type config struct {
+	baseURL   string
+	httpPort  int
+	basicAuth struct {
+		username       string
+		hashedPassword string
+	}
+	db struct {
+		dsn         string
+		automigrate bool
+	}
+	jwt struct {
+		secretKey string
+	}
+}
+
 func main() {
-	addr := flag.String("addr", ":8090", "HTTP network address")
-	dbUrl := flag.String("dsn", "postgres://takumi@localhost:5432/traintrackdb2", "Data source name")
+	var cfg config
+
+	// flag.StringVar(&cfg.baseURL, "base-url", "http://localhost:8090", "base URL for the application")
+	flag.IntVar(&cfg.httpPort, "http-port", 8090, "port to listen on for HTTP requests")
+	// flag.StringVar(&cfg.basicAuth.username, "basic-auth-username", "admin", "basic auth username")
+	// flag.StringVar(&cfg.basicAuth.hashedPassword, "basic-auth-hashed-password", "$2a$10$jRb2qniNcoCyQM23T59RfeEQUbgdAXfR6S0scynmKfJa5Gj3arGJa", "basic auth password hashed with bcrpyt")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://takumi@localhost:5432/traintrackdb2", "Data source name")
+	flag.BoolVar(&cfg.db.automigrate, "db-automigrate", false, "run migrations on startup")
+	flag.StringVar(&cfg.jwt.secretKey, "jwt-secret-key", "to6u2ro7ibzghvsp5h32ihoyi7v3oizk", "secret key for JWT authentication")
+
 	flag.Parse()
 
 	logger := NewSlogger()
 
-	db, err := database.New(*dbUrl, false)
+	db, err := database.New(cfg.db.dsn, false)
 	if err != nil {
 		logger.Level(FATAL).Fatal(err)
 	}
@@ -36,6 +64,7 @@ func main() {
 	a := &Api{
 		db:   db,
 		l:    logger,
+		c:    cfg,
 		eHub: editor.NewHub(),
 		cHub: chat.NewHub(),
 	}
@@ -43,9 +72,22 @@ func main() {
 	go a.eHub.Run()
 	go a.cHub.Run()
 
+	sl := slog.New(tint.NewHandler(os.Stdout, &tint.Options{Level: slog.LevelDebug}))
+
+	authDeps := middleware.AuthDeps{
+		DB:        db,
+		Logger:    sl,
+		JwtSecret: cfg.jwt.secretKey,
+	}
+
+	middlewares := middleware.Chain(
+		middleware.LogRequests,
+		middleware.AuthMiddleware(authDeps),
+	)
+
 	server := &http.Server{
-		Addr:         *addr,
-		Handler:      middleware.LogRequests(a.authenticate(a.routes())),
+		Addr:         fmt.Sprintf(":%d", a.c.httpPort),
+		Handler:      middlewares(a.routes()),
 		ErrorLog:     logger.Level(ERROR),
 		ReadTimeout:  defaultReadTimeout,
 		WriteTimeout: defaultWriteTimeout,
@@ -67,7 +109,7 @@ func main() {
 		close(waitForShutdown)
 	}()
 
-	logger.Level(INFO).Printf("Starting the server on %s", *addr)
+	logger.Level(INFO).Printf("Starting the server on %d", a.c.httpPort)
 
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		logger.Level(FATAL).Fatalf("Server shutdown failed:%s", err)

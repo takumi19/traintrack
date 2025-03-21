@@ -36,7 +36,6 @@ func (a *Api) handleEditProgram(w http.ResponseWriter, r *http.Request) {
 		_ = fmt.Errorf("websocket upgrader: %w", err)
 		return
 	}
-	a.l.Level(INFO).Println("New websocket connection")
 
 	// Create new hub for the specified program ID if it does not exist yet
 

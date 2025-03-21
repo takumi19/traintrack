@@ -1,4 +1,4 @@
-package main
+package middleware
 
 import (
 	"context"
@@ -17,8 +17,8 @@ func ctxSetAuthenticatedUser(r *http.Request, u *database.User) *http.Request {
   return r.WithContext(newCtx)
 }
 
-func ctxGetAuthenticatedUser(ctx context.Context) *database.User {
-  u, ok := ctx.Value(authenticatedUserContextKey).(*database.User)
+func ctxGetAuthenticatedUser(r *http.Request) *database.User {
+  u, ok := r.Context().Value(authenticatedUserContextKey).(*database.User)
   if !ok {
     return nil
   }
