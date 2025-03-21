@@ -16,6 +16,7 @@ import (
 	"traintrack/internal/middleware"
 
 	"github.com/lmittmann/tint"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 )
 
 const (
@@ -46,9 +47,7 @@ func main() {
 
 	// flag.StringVar(&cfg.baseURL, "base-url", "http://localhost:8090", "base URL for the application")
 	flag.IntVar(&cfg.httpPort, "http-port", 8090, "port to listen on for HTTP requests")
-	// flag.StringVar(&cfg.basicAuth.username, "basic-auth-username", "admin", "basic auth username")
-	// flag.StringVar(&cfg.basicAuth.hashedPassword, "basic-auth-hashed-password", "$2a$10$jRb2qniNcoCyQM23T59RfeEQUbgdAXfR6S0scynmKfJa5Gj3arGJa", "basic auth password hashed with bcrpyt")
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://takumi@localhost:5432/traintrackdb2", "Data source name")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://takumi@localhost:5432/traintrackdb2?sslmode=disable", "Database DSN")
 	flag.BoolVar(&cfg.db.automigrate, "db-automigrate", false, "run migrations on startup")
 	flag.StringVar(&cfg.jwt.secretKey, "jwt-secret-key", "to6u2ro7ibzghvsp5h32ihoyi7v3oizk", "secret key for JWT authentication")
 
@@ -56,7 +55,7 @@ func main() {
 
 	logger := NewSlogger()
 
-	db, err := database.New(cfg.db.dsn, false)
+	db, err := database.New(cfg.db.dsn, cfg.db.automigrate)
 	if err != nil {
 		logger.Level(FATAL).Fatal(err)
 	}

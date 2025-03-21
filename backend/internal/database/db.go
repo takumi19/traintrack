@@ -3,8 +3,10 @@ package database
 import (
 	"context"
 	"errors"
+	"traintrack/assets"
 
-	_ "github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -26,6 +28,23 @@ func New(dbUrl string, automigrate bool) (*DB, error) {
 	}
 
 	if automigrate {
+		iofsDriver, err := iofs.New(assets.EmbeddedFiles, "migrations")
+		if err != nil {
+			return nil, err
+		}
+
+		migrator, err := migrate.NewWithSourceInstance("iofs", iofsDriver, dbUrl)
+		if err != nil {
+			return nil, err
+		}
+
+		err = migrator.Up()
+		switch {
+		case errors.Is(err, migrate.ErrNoChange):
+			break
+		case err != nil:
+			return nil, err
+		}
 	}
 
 	return &DB{
