@@ -108,7 +108,6 @@ func (a *Api) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	// Decode JSON into the struct
 	var user database.User
-	// TODO: There is nuance to handling decoder errors
 	if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 		a.l.Level(ERROR).Println("Failed to decode JSON from the request:", err)
 		w.WriteHeader(http.StatusInternalServerError)

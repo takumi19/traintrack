@@ -50,8 +50,10 @@ func (api *Api) userRoutes() http.Handler {
 
 func (api *Api) exerciseRoutes() http.Handler {
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /", api.handleListExercises)
-	mux.HandleFunc("GET /{exercise_id}", api.handleGetExerciseByID)
+	mux.HandleFunc("POST /", api.handleAddExercise)
+	mux.HandleFunc("GET  /", api.handleListExercises)
+	mux.HandleFunc("GET  /{exercise_id}", api.handleGetExerciseByID)
+	// mux.HandleFunc("GET  /{exercise_name}", api.handleGetExerciseBy)
 	return mux
 }
 

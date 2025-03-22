@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var upgrader = websocket.Upgrader{
+var programUpgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	// TODO:
@@ -31,7 +31,7 @@ func (a *Api) handleEditProgram(w http.ResponseWriter, r *http.Request) {
     return
   }
 
-	conn, err := upgrader.Upgrade(w, r, nil)
+	conn, err := programUpgrader.Upgrade(w, r, nil)
 	if err != nil {
 		_ = fmt.Errorf("websocket upgrader: %w", err)
 		return

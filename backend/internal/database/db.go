@@ -18,12 +18,12 @@ var ErrNotFound = errors.New("not found")
 
 // Returns a DB connected to the provided URL. On failure returns nil and an error.
 func New(dbUrl string, automigrate bool) (*DB, error) {
-	conn, err := pgxpool.New(context.Background(), dbUrl)
+	pool, err := pgxpool.New(context.Background(), dbUrl)
 	if err != nil {
 		return nil, err
 	}
 
-	if err := conn.Ping(context.Background()); err != nil {
+	if err := pool.Ping(context.Background()); err != nil {
 		return nil, err
 	}
 
@@ -48,6 +48,6 @@ func New(dbUrl string, automigrate bool) (*DB, error) {
 	}
 
 	return &DB{
-		Pool: conn,
+		Pool: pool,
 	}, nil
 }
