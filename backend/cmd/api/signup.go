@@ -10,10 +10,10 @@ import (
 )
 
 type userDTO struct {
-	FullName          *string `json:"full_name" db:"full_name"`
-	Login             *string `json:"login" db:"login"`
-	Email             *string `json:"email" db:"email"`
-	PlaintextPassword *string `json:"password" db:"password"`
+	FullName          *string `json:"full_name"`
+	Login             *string `json:"login"`
+	Email             *string `json:"email"`
+	PlaintextPassword *string `json:"password"`
 }
 
 func (a *Api) handleSignup(w http.ResponseWriter, r *http.Request) {
@@ -49,9 +49,27 @@ func (a *Api) handleSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := jwt.CreateJWT(a.c.jwt.secretKey, user)
+  // {{{ Refresh Token
+  refreshToken, err := jwt.NewRefreshToken(a.c.jwt.refreshKey, user)
+  if err != nil {
+    WriteError(w, http.StatusInternalServerError, "Failed to create refresh token")
+    return
+  }
+
+  cookie := a.tokenCookieTemplate
+  cookie.Value, err = a.secureCookie.Encode("refresh_token", refreshToken)
+  if err != nil {
+    WriteError(w, http.StatusInternalServerError, "Failed to create cookie")
+    return
+  }
+
+  http.SetCookie(w, cookie)
+  // }}} Refresh Token
+
+	token, err := jwt.NewAccessToken(a.c.jwt.accessKey, user)
 	if err != nil {
-		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to create token"})
+    a.l.Level(ERROR).Println(err.Error())
+		WriteError(w, http.StatusInternalServerError, "Failed to create token")
 		return
 	}
 

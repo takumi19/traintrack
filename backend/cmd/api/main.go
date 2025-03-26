@@ -15,8 +15,9 @@ import (
 	"traintrack/internal/editor"
 	"traintrack/internal/middleware"
 
-	"github.com/lmittmann/tint"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/gorilla/securecookie"
+	"github.com/lmittmann/tint"
 )
 
 const (
@@ -26,6 +27,7 @@ const (
 	defaultShutdownPeriod = 30 * time.Second
 )
 
+// TODO: Move to using env based config instead of cmdline
 type config struct {
 	baseURL   string
 	httpPort  int
@@ -38,7 +40,12 @@ type config struct {
 		automigrate bool
 	}
 	jwt struct {
-		secretKey string
+		accessKey  string
+		refreshKey string // For refresh tokens
+	}
+	cookie struct {
+		authenticationKey string
+		encryptionKey     string
 	}
 }
 
@@ -49,7 +56,8 @@ func main() {
 	flag.IntVar(&cfg.httpPort, "http-port", 8090, "port to listen on for HTTP requests")
 	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://takumi@localhost:5432/traintrackdb2?sslmode=disable", "Database DSN")
 	flag.BoolVar(&cfg.db.automigrate, "db-automigrate", false, "run migrations on startup")
-	flag.StringVar(&cfg.jwt.secretKey, "jwt-secret-key", "to6u2ro7ibzghvsp5h32ihoyi7v3oizk", "secret key for JWT authentication")
+	flag.StringVar(&cfg.cookie.authenticationKey, "cookie-authentication-key", "dbdc8cd3ebf4374c206f172e181398355947d261e630accda37d231f7526132c", "cookie authentication key")
+	flag.StringVar(&cfg.cookie.encryptionKey, "cookie-encryption-key", "2e5e452882ee62ba7d383d820e24298a", "cookie encryption key")
 
 	flag.Parse()
 
@@ -61,11 +69,19 @@ func main() {
 	}
 
 	a := &Api{
-		db:   db,
-		l:    logger,
-		c:    cfg,
-		eHub: editor.NewHub(),
-		cHub: chat.NewHub(),
+		db:           db,
+		l:            logger,
+		c:            cfg,
+		eHub:         editor.NewHub(),
+		cHub:         chat.NewHub(),
+		secureCookie: securecookie.New([]byte(cfg.cookie.authenticationKey), []byte(cfg.cookie.encryptionKey)),
+		tokenCookieTemplate: &http.Cookie{
+			Name:     "traintrack-cookie",
+			Path:     "/",
+			Secure:   true,
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+		},
 	}
 
 	go a.eHub.Run()
@@ -76,7 +92,7 @@ func main() {
 	authDeps := middleware.AuthDeps{
 		DB:        db,
 		Logger:    sl,
-		JwtSecret: cfg.jwt.secretKey,
+		JwtSecret: cfg.jwt.accessKey,
 	}
 
 	middlewares := middleware.Chain(

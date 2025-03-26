@@ -7,6 +7,8 @@ import (
 	"traintrack/internal/database"
 	"traintrack/internal/editor"
 	"traintrack/internal/middleware"
+
+	"github.com/gorilla/securecookie"
 )
 
 type Api struct {
@@ -16,7 +18,9 @@ type Api struct {
 	// Editor hub
 	eHub *editor.Hub
 	// Chat hub
-	cHub *chat.Hub
+	cHub                *chat.Hub
+	secureCookie        *securecookie.SecureCookie
+	tokenCookieTemplate *http.Cookie
 }
 
 type ApiError struct {
@@ -80,6 +84,7 @@ func (api *Api) routes() http.Handler {
 	// Login and signup handlers
 	mux.HandleFunc("POST /login", api.handleLogin)
 	mux.HandleFunc("POST /signup", api.handleSignup)
+	mux.HandleFunc("GET /refresh", api.handleRefresh)
 
 	// User handlers
 	mux.Handle("/users/", http.StripPrefix("/users", api.userRoutes()))
@@ -107,4 +112,10 @@ func WriteJSON(w http.ResponseWriter, status int, v any) error {
 	w.Header().Add("Content-Type", "application/json")
 	w.WriteHeader(status)
 	return json.NewEncoder(w).Encode(v)
+}
+
+func WriteError(w http.ResponseWriter, status int, errorMsg string) error {
+	w.Header().Add("Content-Type", "application/json")
+	w.WriteHeader(status)
+	return json.NewEncoder(w).Encode(ApiError{Error: errorMsg})
 }

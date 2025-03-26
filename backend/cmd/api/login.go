@@ -62,14 +62,35 @@ func (a *Api) handleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create JWT
-	token, err := jwt.CreateJWT(a.c.jwt.secretKey, user)
+  // {{{ Refresh Token
+  refreshToken, err := jwt.NewRefreshToken(a.c.jwt.refreshKey, user)
+  // refreshToken, err := jwt.NewRefreshToken(a.c.jwt.refreshKey + *user.PasswordHash, user)
+  if err != nil {
+    WriteError(w, http.StatusInternalServerError, "Failed to create refresh token")
+    return
+  }
+
+  cookie := a.tokenCookieTemplate
+  cookie.Value, err = a.secureCookie.Encode(cookie.Name, refreshToken)
+  if err != nil {
+    WriteError(w, http.StatusInternalServerError, "Failed to create cookie")
+    return
+  }
+
+  http.SetCookie(w, cookie)
+  // }}} Refresh Token
+
+	// {{{ Create access JWT
+	accessToken, err := jwt.NewAccessToken(a.c.jwt.accessKey, user)
 	if err != nil {
+    a.l.Level(ERROR).Println(err.Error())
 		WriteJSON(w, http.StatusInternalServerError, ApiError{Error: "Failed to create token"})
 		return
 	}
 
+	// }}} Create access JWT
+
 	WriteJSON(w, http.StatusOK, map[string]string{
-		"token": token,
+		"token": accessToken,
 	})
 }

@@ -20,7 +20,6 @@ func AuthMiddleware(deps AuthDeps) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Tells the cache to cache responses based on this header
-			// NOTE: Might not be useful for a web frontend, but sending jwt in a header for a mobile app is fine
 			w.Header().Add("Vary", "Authorization")
 
 			authHeader := r.Header.Get("Authorization")
@@ -35,11 +34,7 @@ func AuthMiddleware(deps AuthDeps) func(next http.Handler) http.Handler {
 			if len(headerParts) == 2 && headerParts[0] == "Bearer" {
 				tokenString := headerParts[1]
 
-				token, err := jwt.GetToken(deps.JwtSecret, tokenString)
-				if err != nil {
-					authFailure(w, "Failed to validate JWT")
-					return
-				}
+				token, _ := jwt.GetToken(deps.JwtSecret, tokenString)
 
 				if !token.Valid {
 					authFailure(w, "Failed to validate JWT")
@@ -72,7 +67,7 @@ func RequireAuthentication(next http.Handler) http.Handler {
 		user := ctxGetAuthenticatedUser(r)
 
 		if user == nil {
-      authFailure(w, "Failed to authenticate user")
+			authFailure(w, "Failed to authenticate user")
 			return
 		}
 
@@ -82,8 +77,8 @@ func RequireAuthentication(next http.Handler) http.Handler {
 
 func authFailure(w http.ResponseWriter, msg string) {
 	w.Header().Add("Content-Type", "application/json")
-  w.Header().Add("WWW-Authenticate", "Bearer")
-  w.WriteHeader(http.StatusUnauthorized)
+	w.Header().Add("WWW-Authenticate", "Bearer")
+	w.WriteHeader(http.StatusUnauthorized)
 
 	data := struct {
 		Error string
